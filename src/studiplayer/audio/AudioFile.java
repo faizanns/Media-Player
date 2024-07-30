@@ -1,9 +1,12 @@
-public class AudioFile {
+package studiplayer.audio;
+import java.io.File;
+
+public abstract class AudioFile {
 
 	private String pathname;
 	private String filename;
-	private String author;
-	private String title;
+	protected String author;
+	protected String title;
 	
 	private boolean isWindows() {
 		return System.getProperty("os.name").toLowerCase().indexOf("win") >= 0;
@@ -16,9 +19,22 @@ public class AudioFile {
 		title = "";
 	}
 	
-	public AudioFile(String path) {
+	public AudioFile(String path) throws NotPlayableException {
 		parsePathname(path);
+		
+		// Check if the file path is null or empty
+        if (pathname == null || pathname.isEmpty()) {
+            throw new NotPlayableException(pathname, "File path cannot be null or empty");
+        }
+
+        // Check if the file is readable
+        File file = new File(pathname);
+        if (!file.canRead()) {
+            throw new NotPlayableException(pathname, "Cannot read file: " + pathname);
+        }
+        
 		parseFilename(filename);
+
 	}
 	
 	@Override
@@ -33,7 +49,7 @@ public class AudioFile {
 	
 	public void parseFilename(String filename) {
 		
-		if (filename.contains("-") == false) {
+		if (filename.contains(" - ") == false) {
 			
 			// empty filename string
 			if (filename.trim().equals("")) {
@@ -84,27 +100,34 @@ public class AudioFile {
 	
 	public void parsePathname(String path) {
 		
-		// empty path string
-		if (path.equals("")) {
-			filename = "";
-			pathname = "";
+		path = path.trim();
+		
+		// Cases without a slash
+		if (!path.contains("/") && !path.contains("\\")) {
 			
-		// no slashes, only file name
-		} else if (!path.contains("/") && !path.contains("\\")) {
-			filename = path.trim();
-			pathname = path.trim();
-			
-		// only dash
-		} else if (path.trim().equals("-")) {
-			filename = "-";
-			pathname = "-";
+			// empty path string
+			if (path.equals("")) {
+				filename = "";
+				pathname = "";
+				
+			// no slashes, only file name
+			} else if (path.indexOf(".") == path.lastIndexOf(".") && !path.contains("/") && !path.contains("\\")) {
+				filename = path.trim();
+				pathname = path.trim();
+				
+			// only dash
+			} else if (path.trim().equals("-")) {
+				filename = "-";
+				pathname = "-";
+				
+			// Either empty path or invalid path without a slash
+			} else {
+				filename = "";
+				pathname = "";
+			}
 				
 		// cases with slashes
 		} else {
-			
-			while (path.charAt(path.length() - 1) == ' ') {
-				path = path.substring(0, path.lastIndexOf(" "));
-			}
 			
 			// check OS and correct path
 			if (isWindows() == true) {
@@ -128,7 +151,6 @@ public class AudioFile {
 			if (path.substring(path.length() - 1).equals("\\") || path.substring(path.length() - 1).equals("/")) {
 				pathname = path;
 				filename = "";
-			
 			} else {
 				// filename at end of path
 				pathname = path;
@@ -157,5 +179,11 @@ public class AudioFile {
 	public String getTitle() {
 		return title;
 	}
+	
+	public abstract void play() throws NotPlayableException;
+	public abstract void togglePause();
+	public abstract void stop();
+	public abstract String formatDuration();
+	public abstract String formatPosition();
 	
 }
